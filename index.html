@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>XI.FI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+
+  <!-- loading -->
+  <div class="loader" id="loader">
+    <div class="loader-core">
+      <div class="sky">
+        <svg class="plane" viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M58 32 40 26 34 8h-6l4 18-18 2-6-8H4l4 12-4 12h6l6-8 18 2-4 18h6l6-18 18-6z"/>
+        </svg>
+      </div>
+      <h1 class="loader-logo">XI<span>.</span>FI</h1>
+      <div class="typer"><span id="typerText"></span><i class="caret"></i></div>
+      <div class="loader-bar"><span id="loaderFill"></span></div>
+    </div>
+  </div>
+
+  <!-- tombol pojok kiri atas: menu & chat ai -->
+  <header class="topbar">
+    <button class="burger" id="burger" aria-label="buka menu" aria-expanded="false" aria-controls="drawer">
+      <span></span><span></span><span></span>
+    </button>
+    <button class="ai-fab" id="aiFab" aria-label="buka chat ai" aria-expanded="false" title="tanya ai">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="5" y="8" width="14" height="11" rx="3"/>
+        <path d="M12 4v4"/>
+        <circle cx="12" cy="3" r="1"/>
+        <circle cx="9.5" cy="13" r="1.2" class="fill"/>
+        <circle cx="14.5" cy="13" r="1.2" class="fill"/>
+        <path d="M9.5 16.5h5"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- panel chat ai (belah layar / layar penuh) -->
+  <aside class="ai-panel" id="aiPanel" aria-hidden="true" aria-label="chat ai">
+    <div class="ai-head">
+      <div class="ai-titles">
+        <span class="ai-title">XI.FI AI</span>
+        <span class="ai-sub">asisten belajar</span>
+      </div>
+      <div class="ai-actions">
+        <button class="icon-btn" id="aiSize" aria-label="layar penuh" title="layar penuh">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
+        <button class="icon-btn text-btn" id="aiClear" aria-label="hapus chat" title="hapus chat">hapus</button>
+        <button class="icon-btn" id="aiClose" aria-label="tutup chat" title="tutup">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="ai-log" id="aiLog" aria-live="polite"></div>
+
+    <div class="chips">
+      <button class="chip" data-prompt="jelaskan fotosintesis dengan singkat">jelaskan fotosintesis</button>
+      <button class="chip" data-prompt="beri 3 ide presentasi untuk kelas">ide presentasi</button>
+      <button class="chip" data-prompt="buat 3 soal latihan matematika sederhana">soal latihan</button>
+    </div>
+
+    <form class="ai-form" id="aiForm" autocomplete="off">
+      <input type="text" id="aiInput" class="search ai-input" maxlength="1000" placeholder="tulis pertanyaanmu...">
+      <button class="btn btn-solid btn-sm" id="aiSend" type="submit">kirim</button>
+    </form>
+  </aside>
+
+  <!-- menu samping -->
+  <div class="overlay" id="overlay"></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <span class="drawer-sub">menu kelas</span>
+    </div>
+
+    <nav class="drawer-nav">
+      <a href="#beranda" class="menu-link" data-target="beranda"><i>01</i>BERANDA</a>
+      <a href="#walas" class="menu-link" data-target="walas"><i>02</i>WALAS</a>
+      <a href="#siswa" class="menu-link" data-target="siswa"><i>03</i>SISWA</a>
+      <a href="#game" class="menu-link" data-target="game"><i>04</i>MINI GAME</a>
+      <a href="#tentang" class="menu-link" data-target="tentang"><i>05</i>TENTANG</a>
+    </nav>
+
+    <div class="drawer-section">
+      <p class="drawer-label">tema</p>
+      <div class="theme-row">
+        <button class="theme-dot" data-theme-set="dark" aria-label="tema gelap" title="gelap">
+          <span class="dot dot-dark"></span>
+        </button>
+        <button class="theme-dot" data-theme-set="white" aria-label="tema putih" title="putih">
+          <span class="dot dot-white"></span>
+        </button>
+        <button class="theme-dot" data-theme-set="pink" aria-label="tema pink" title="pink">
+          <span class="dot dot-pink"></span>
+        </button>
+      </div>
+    </div>
+
+    <p class="drawer-foot">kelas XI.FI &copy; 2026</p>
+  </aside>
+
+  <!-- beranda -->
+  <section class="hero" id="beranda">
+    <img src="XI.F1-smansara.jpg" alt="logo kelas XI.FI" class="hero-logo reveal">
+    <span class="tag reveal">kelas XI</span>
+    <h1 class="sr-only">XI.FI</h1>
+    <p class="reveal">satu kelas, satu cerita. kenali walas dan seluruh siswa XI.FI, lalu mainkan game-nya.</p>
+    <div class="hero-actions reveal">
+      <a href="#walas" class="btn btn-solid">lihat walas</a>
+      <a href="#game" class="btn btn-ghost">main game</a>
+    </div>
+  </section>
+
+  <!-- walas -->
+  <section class="section" id="walas">
+    <div class="section-head reveal">
+      <span class="eyebrow">wali kelas</span>
+      <h2>pembimbing kami</h2>
+    </div>
+    <div class="walas-card glass reveal">
+      <div class="avatar avatar-lg" id="walasAvatar"></div>
+      <div>
+        <h3 id="walasName"></h3>
+        <p>walas XI.FI</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- siswa -->
+  <section class="section" id="siswa">
+    <div class="section-head reveal">
+      <span class="eyebrow">daftar siswa</span>
+      <h2>anggota kelas</h2>
+    </div>
+    <div class="toolbar reveal">
+      <input type="search" id="searchInput" class="search" placeholder="cari nama siswa...">
+      <span class="count" id="countText"></span>
+    </div>
+    <div class="grid" id="studentGrid"></div>
+    <p class="empty" id="emptyText" hidden>nama tidak ditemukan.</p>
+  </section>
+
+  <!-- game -->
+  <section class="section" id="game">
+    <div class="section-head reveal">
+      <span class="eyebrow">mini game</span>
+      <h2>mainkan sekarang</h2>
+    </div>
+
+    <div class="tabs reveal">
+      <button class="tab active" data-tab="snake">cacing</button>
+      <button class="tab" data-tab="type">ngetik</button>
+      <button class="tab" data-tab="guess">tebak angka</button>
+      <button class="tab" data-tab="tap">tap cepat</button>
+    </div>
+
+    <!-- cacing -->
+    <div class="game-wrap glass reveal" id="panelSnake">
+      <div class="game-hud">
+        <span>skor <b id="score">0</b></span>
+        <span>rekor <b id="best">0</b></span>
+        <button class="btn btn-ghost btn-sm" id="resetBtn">ulang</button>
+      </div>
+      <canvas id="snake" width="400" height="400"></canvas>
+      <p class="game-hint" id="hint">tekan panah atau geser untuk mulai</p>
+      <div class="pad">
+        <button data-dir="up">▲</button>
+        <div class="pad-mid">
+          <button data-dir="left">◀</button>
+          <button data-dir="down">▼</button>
+          <button data-dir="right">▶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ngetik -->
+    <div class="game-wrap glass" id="panelType" hidden>
+      <div class="game-hud">
+        <span>waktu <b id="tTime">30</b>s</span>
+        <span>wpm <b id="tWpm">0</b></span>
+        <span>akurasi <b id="tAcc">100</b>%</span>
+      </div>
+      <p class="sample" id="sample"></p>
+      <input type="text" id="typeInput" class="search type-input" placeholder="mulai ketik di sini..." autocomplete="off" spellcheck="false">
+      <div class="type-actions">
+        <button class="btn btn-ghost btn-sm" id="typeReset">teks baru</button>
+        <p class="game-hint" id="typeHint">timer 30 detik mulai saat kamu mulai mengetik</p>
+        <p class="game-hint">rekor wpm <b id="bestWpm">0</b></p>
+      </div>
+    </div>
+
+    <!-- tebak angka -->
+    <div class="game-wrap glass" id="panelGuess" hidden>
+      <p class="big">tebak angka 1 sampai 100</p>
+      <div class="row">
+        <input type="number" id="gInput" class="search" min="1" max="100" placeholder="angka..." autocomplete="off">
+        <button class="btn btn-solid btn-sm" id="gGo">tebak</button>
+      </div>
+      <p class="game-hint" id="gHint">mulai menebak</p>
+      <div class="game-hud">
+        <span>percobaan <b id="gTries">0</b></span>
+        <span>rekor <b id="gBest">-</b></span>
+        <button class="btn btn-ghost btn-sm" id="gReset">baru</button>
+      </div>
+    </div>
+
+    <!-- tap cepat -->
+    <div class="game-wrap glass" id="panelTap" hidden>
+      <div class="game-hud">
+        <span>waktu <b id="tapTime">20</b>s</span>
+        <span>skor <b id="tapScore">0</b></span>
+        <span>rekor <b id="tapBest">0</b></span>
+      </div>
+      <div class="arena" id="arena">
+        <p class="arena-msg" id="arenaMsg">tekan mulai, lalu tap kotak yang muncul secepat mungkin</p>
+      </div>
+      <button class="btn btn-solid btn-sm" id="tapStart">mulai</button>
+    </div>
+  </section>
+
+  <!-- tentang -->
+  <section class="section" id="tentang">
+    <div class="section-head reveal">
+      <span class="eyebrow">tentang</span>
+      <h2>kelas XI.FI</h2>
+    </div>
+    <div class="stats reveal">
+      <div class="stat glass"><b id="statSiswa">0</b><span>siswa</span></div>
+      <div class="stat glass"><b>4</b><span>mini game</span></div>
+      <div class="stat glass"><b>3</b><span>pilihan tema</span></div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span class="logo">XI.FI</span>
+    <p>kelas XI.FI &copy; 2026</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
