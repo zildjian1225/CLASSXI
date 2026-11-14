@@ -1,14 +1,9 @@
 // api/chat.js
-// kunci dibaca dari environment variable OPENROUTER_API_KEY di Vercel.
+// kunci dibaca dari environment variable GEMINI_API_KEY di Vercel.
 
 export const config = { maxDuration: 30 };
 
-const MODELS = [
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'meta-llama/llama-3.1-8b-instruct:free',
-  'google/gemma-3-27b-it:free',
-  'mistralai/mistral-small-3.1-24b-instruct:free',
-];
+const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
 
 const SYSTEM_PROMPT = `
 kamu adalah asisten belajar untuk kelas XI.FI.
@@ -25,7 +20,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'method tidak diizinkan.' });
   }
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'api key belum diatur di server.' });
   }
@@ -52,7 +47,7 @@ export default async function handler(req, res) {
 
   for (const model of MODELS) {
     try {
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,14 +67,14 @@ export default async function handler(req, res) {
       }
 
       lastError = `${model} (status ${r.status}): ${text.slice(0, 200)}`;
-      console.error('openrouter error:', lastError);
+      console.error('gemini error:', lastError);
     } catch (e) {
       lastError = `${model}: ${e.message}`;
       console.error('server error:', lastError);
     }
   }
 
-  // sementara: tampilkan penyebab asli di chat supaya terlihat tanpa perlu buka log
+  // sementara: tampilkan penyebab asli supaya terlihat. Setelah jalan, ganti jadi pesan umum.
   return res.status(200).json({
     reply: `maaf, semua model gagal.\nDETAIL: ${lastError}`
   });
