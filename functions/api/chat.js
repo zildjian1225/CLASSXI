@@ -23,7 +23,12 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'api key belum diatur di server.' });
   }
 
-  const body = req.body || {};
+  let body = req.body;
+  if (typeof body === 'string') {
+    try { body = JSON.parse(body); } catch (e) { body = {}; }
+  }
+  body = body || {};
+
   const message = String(body.message || '').trim().slice(0, MAX_MESSAGE);
   if (!message) {
     return res.status(400).json({ error: 'pesan kosong.' });
@@ -54,6 +59,8 @@ export default async function handler(req, res) {
     });
 
     if (!r.ok) {
+      const detail = await r.text();
+      console.error('openrouter error:', r.status, detail);
       return res.status(502).json({ error: 'gagal menghubungi ai.' });
     }
 
@@ -61,6 +68,7 @@ export default async function handler(req, res) {
     const reply = data?.choices?.[0]?.message?.content || 'maaf, aku belum bisa menjawab itu.';
     return res.status(200).json({ reply });
   } catch (e) {
+    console.error('server error:', e);
     return res.status(500).json({ error: 'server ai sedang bermasalah.' });
   }
 }
