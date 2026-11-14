@@ -3,7 +3,11 @@
 
 export const config = { maxDuration: 30 };
 
-const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+const MODELS = [
+  'gemini-3.8-flash',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+];
 
 const SYSTEM_PROMPT = `
 kamu adalah asisten belajar untuk kelas XI.FI.
@@ -43,7 +47,7 @@ export default async function handler(req, res) {
     .forEach(m => messages.push({ role: m.role, content: m.text.slice(0, 2000) }));
   messages.push({ role: 'user', content: message });
 
-  let lastError = 'tidak ada model yang dicoba';
+  const errors = [];
 
   for (const model of MODELS) {
     try {
@@ -62,20 +66,20 @@ export default async function handler(req, res) {
         const data = JSON.parse(text);
         const reply = data?.choices?.[0]?.message?.content;
         if (reply) return res.status(200).json({ reply });
-        lastError = `${model}: jawaban kosong`;
+        errors.push(`${model}: jawaban kosong`);
         continue;
       }
 
-      lastError = `${model} (status ${r.status}): ${text.slice(0, 200)}`;
-      console.error('gemini error:', lastError);
+      errors.push(`${model} (status ${r.status}): ${text.slice(0, 150)}`);
     } catch (e) {
-      lastError = `${model}: ${e.message}`;
-      console.error('server error:', lastError);
+      errors.push(`${model}: ${e.message}`);
     }
   }
 
-  // sementara: tampilkan penyebab asli supaya terlihat. Setelah jalan, ganti jadi pesan umum.
+  console.error('gemini errors:', errors);
+
+  // sementara: tampilkan semua error supaya terlihat. Setelah jalan, ganti jadi pesan umum.
   return res.status(200).json({
-    reply: `maaf, semua model gagal.\nDETAIL: ${lastError}`
+    reply: `maaf, semua model gagal.\nDETAIL:\n${errors.join('\n')}`.slice(0, 1500)
   });
 }
