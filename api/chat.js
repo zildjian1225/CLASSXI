@@ -1,7 +1,14 @@
 // api/chat.js
 // kunci dibaca dari environment variable OPENROUTER_API_KEY di Vercel.
 
-const MODEL = 'meta-llama/llama-3.1-8b-instruct:free';
+export const config = { maxDuration: 30 };
+
+const MODELS = [
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'google/gemma-3-27b-it:free',
+  'mistralai/mistral-small-3.1-24b-instruct:free',
+];
 
 const SYSTEM_PROMPT = `
 kamu adalah asisten belajar untuk kelas XI.FI.
@@ -36,39 +43,44 @@ export default async function handler(req, res) {
 
   const history = Array.isArray(body.history) ? body.history.slice(-MAX_HISTORY) : [];
   const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
-
   history
     .filter(m => m && typeof m.text === 'string' && (m.role === 'user' || m.role === 'assistant'))
     .forEach(m => messages.push({ role: m.role, content: m.text.slice(0, 2000) }));
-
   messages.push({ role: 'user', content: message });
 
-  try {
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages,
-        max_tokens: 800,
-        temperature: 0.7
-      })
-    });
+  let lastError = 'tidak ada model yang dicoba';
 
-    if (!r.ok) {
-      const detail = await r.text();
-      console.error('openrouter error:', r.status, detail);
-      return res.status(502).json({ error: 'gagal menghubungi ai.' });
+  for (const model of MODELS) {
+    try {
+      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({ model, messages, max_tokens: 800, temperature: 0.7 })
+      });
+
+      const text = await r.text();
+
+      if (r.ok) {
+        const data = JSON.parse(text);
+        const reply = data?.choices?.[0]?.message?.content;
+        if (reply) return res.status(200).json({ reply });
+        lastError = `${model}: jawaban kosong`;
+        continue;
+      }
+
+      lastError = `${model} (status ${r.status}): ${text.slice(0, 200)}`;
+      console.error('openrouter error:', lastError);
+    } catch (e) {
+      lastError = `${model}: ${e.message}`;
+      console.error('server error:', lastError);
     }
-
-    const data = await r.json();
-    const reply = data?.choices?.[0]?.message?.content || 'maaf, aku belum bisa menjawab itu.';
-    return res.status(200).json({ reply });
-  } catch (e) {
-    console.error('server error:', e);
-    return res.status(500).json({ error: 'server ai sedang bermasalah.' });
   }
+
+  // sementara: tampilkan penyebab asli di chat supaya terlihat tanpa perlu buka log
+  return res.status(200).json({
+    reply: `maaf, semua model gagal.\nDETAIL: ${lastError}`
+  });
 }
