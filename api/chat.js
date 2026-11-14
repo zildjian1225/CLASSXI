@@ -1,7 +1,7 @@
 // api/chat.js
 // kunci dibaca dari environment variable OPENROUTER_API_KEY di Vercel.
 
-const MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+const MODEL = 'meta-llama/llama-3.1-8b-instruct:free';
 
 const SYSTEM_PROMPT = `
 kamu adalah asisten belajar untuk kelas XI.FI.
