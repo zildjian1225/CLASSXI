@@ -1,10 +1,10 @@
 // api/chat.js
-// kunci dibaca dari environment variable GEMINI_API_KEY di Vercel.
+// kunci dibaca dari environment variable GROQ_API_KEY di Vercel.
 
 export const config = { maxDuration: 60 };
 
-const MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
-const URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+const URL = 'https://api.groq.com/openai/v1/chat/completions';
 const TIMEOUT_MS = 20000;
 const MAX_MESSAGE = 1000;
 const MAX_HISTORY = 10;
@@ -50,9 +50,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'method tidak diizinkan.' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    return res.status(200).json({ reply: 'maaf, server belum diatur. (GEMINI_API_KEY kosong)' });
+    return res.status(200).json({ reply: 'maaf, server belum diatur. (GROQ_API_KEY kosong)' });
   }
 
   let body = req.body;
@@ -80,7 +80,7 @@ export default async function handler(req, res) {
     errors.push(result.error);
   }
 
-  console.error('gemini errors:', errors);
+  console.error('groq errors:', errors);
 
   // sementara: tampilkan penyebab asli. Setelah jalan, ganti jadi pesan umum.
   return res.status(200).json({
