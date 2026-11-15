@@ -1,89 +1,322 @@
-// api/chat.js
-// kunci dibaca dari environment variable GROQ_API_KEY di Vercel.
-
-export const config = { maxDuration: 60 };
-
-const MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-const URL = 'https://api.groq.com/openai/v1/chat/completions';
-const TIMEOUT_MS = 20000;
-const MAX_MESSAGE = 1000;
-const MAX_HISTORY = 10;
-
-const SYSTEM_PROMPT = `
-kamu adalah asisten belajar untuk kelas XI.FI.
-jawab dengan bahasa indonesia yang ramah dan singkat.
-bantu siswa memahami pelajaran, membuat ide tugas, dan menjawab pertanyaan umum.
-jika pertanyaan tidak pantas atau berbahaya, tolak dengan sopan.
-`;
-
-async function callModel(model, messages, apiKey) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  try {
-    const r = await fetch(URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({ model, messages, max_tokens: 800, temperature: 0.7 }),
-      signal: controller.signal
-    });
-    const text = await r.text();
-    if (!r.ok) {
-      return { ok: false, error: `${model} (status ${r.status}): ${text.slice(0, 150)}` };
-    }
-    const data = JSON.parse(text);
-    const reply = data?.choices?.[0]?.message?.content;
-    if (!reply) return { ok: false, error: `${model}: jawaban kosong` };
-    return { ok: true, reply };
-  } catch (e) {
-    const why = e.name === 'AbortError' ? 'timeout' : e.message;
-    return { ok: false, error: `${model}: ${why}` };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'method tidak diizinkan.' });
+
+  // Semua error AI dikembalikan sebagai JSON reply.
+  function debug(message) {
+    return res.status(200).json({
+      reply: message
+    });
   }
 
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    return res.status(200).json({ reply: 'maaf, server belum diatur. (GROQ_API_KEY kosong)' });
+  // Tes endpoint melalui browser.
+  if (req.method === "GET") {
+    return res.status(200).json({
+      reply: "API CHAT XYZ AKTIF"
+    });
   }
 
-  let body = req.body;
-  if (typeof body === 'string') {
-    try { body = JSON.parse(body); } catch (e) { body = {}; }
-  }
-  body = body || {};
-
-  const message = String(body.message || '').trim().slice(0, MAX_MESSAGE);
-  if (!message) {
-    return res.status(400).json({ error: 'pesan kosong.' });
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      reply: "Method tidak diizinkan."
+    });
   }
 
-  const history = Array.isArray(body.history) ? body.history.slice(-MAX_HISTORY) : [];
-  const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
-  history
-    .filter(m => m && typeof m.text === 'string' && (m.role === 'user' || m.role === 'assistant'))
-    .forEach(m => messages.push({ role: m.role, content: m.text.slice(0, 2000) }));
-  messages.push({ role: 'user', content: message });
+  const API_KEY = process.env.GROQ_API_KEY;
 
-  const errors = [];
-  for (const model of MODELS) {
-    const result = await callModel(model, messages, apiKey);
-    if (result.ok) return res.status(200).json({ reply: result.reply });
-    errors.push(result.error);
+  if (!API_KEY) {
+    return debug(
+      "DEBUG: GROQ_API_KEY tidak ditemukan di Vercel Environment Variables."
+    );
   }
 
-  console.error('groq errors:', errors);
+  const BASE_URL = "https://api.groq.com/openai/v1";
 
-  // sementara: tampilkan penyebab asli. Setelah jalan, ganti jadi pesan umum.
-  return res.status(200).json({
-    reply: `maaf, ai gagal menjawab.\nDETAIL:\n${errors.join('\n')}`.slice(0, 1500)
-  });
+  // Timeout untuk setiap permintaan.
+  async function requestWithTimeout(url, options, timeout = 10000) {
+
+    const controller = new AbortController();
+
+    const timer = setTimeout(() => {
+      controller.abort();
+    }, timeout);
+
+    try {
+
+      return await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // Membaca error asli dari Groq.
+  async function readError(response) {
+
+    const text = await response.text();
+
+    try {
+
+      const json = JSON.parse(text);
+
+      return json.error?.message ||
+             json.message ||
+             text;
+
+    } catch {
+
+      return text || "Tidak ada detail error.";
+
+    }
+  }
+
+  try {
+
+    const body = req.body || {};
+
+    const message = body.message;
+
+    const history = Array.isArray(body.history)
+      ? body.history
+      : [];
+
+    if (!message || typeof message !== "string") {
+      return debug("DEBUG: Pesan kosong atau tidak valid.");
+    }
+
+    // 1. AMBIL DAFTAR MODEL GROQ
+
+    let modelResponse;
+
+    try {
+
+      modelResponse = await requestWithTimeout(
+        BASE_URL + "/models",
+        {
+          method: "GET",
+          headers: {
+            "Authorization": "Bearer " + API_KEY,
+            "Content-Type": "application/json"
+          }
+        },
+        10000
+      );
+
+    } catch (error) {
+
+      return debug(
+        "DEBUG: Gagal mengambil daftar model Groq: " +
+        error.message
+      );
+
+    }
+
+    if (!modelResponse.ok) {
+
+      const error = await readError(modelResponse);
+
+      return debug(
+        "DEBUG: Gagal mengambil daftar model. HTTP " +
+        modelResponse.status +
+        ": " + error
+      );
+
+    }
+
+    const modelData = await modelResponse.json();
+
+    if (!Array.isArray(modelData.data)) {
+
+      return debug(
+        "DEBUG: Format daftar model Groq tidak sesuai."
+      );
+
+    }
+
+    // 2. FILTER MODEL CHAT
+
+    const availableModels = modelData.data
+      .filter(model => {
+
+        if (!model.id) return false;
+
+        if (model.active === false) return false;
+
+        const id = model.id.toLowerCase();
+
+        const excluded = [
+          "whisper",
+          "tts",
+          "orpheus",
+          "guard",
+          "embedding",
+          "embed",
+          "speech"
+        ];
+
+        return !excluded.some(word => id.includes(word));
+
+      })
+      .map(model => model.id);
+
+    if (availableModels.length === 0) {
+
+      return debug(
+        "DEBUG: Groq berhasil dihubungi, tetapi tidak ditemukan kandidat model chat."
+      );
+
+    }
+
+    // 3. PRIORITAS MODEL
+
+    const preferredModels = [
+      "openai/gpt-oss-20b",
+      "openai/gpt-oss-120b",
+      "qwen/qwen3.8-27b"
+    ];
+
+    const models = [
+      ...preferredModels.filter(id =>
+        availableModels.includes(id)
+      ),
+
+      ...availableModels.filter(id =>
+        !preferredModels.includes(id)
+      )
+    ].slice(0, 5);
+
+    // 4. SIAPKAN RIWAYAT CHAT
+
+    const messages = [
+      {
+        role: "system",
+        content: "Kamu adalah asisten AI yang ramah, "
+          + "cerdas, dan membantu. Jawablah menggunakan "
+          + "bahasa yang sesuai dengan pengguna."
+      }
+    ];
+
+    for (const item of history.slice(-12)) {
+
+      if (
+        item &&
+        ["user", "assistant"].includes(item.role) &&
+        typeof item.content === "string"
+      ) {
+
+        messages.push({
+          role: item.role,
+          content: item.content
+        });
+
+      }
+
+    }
+
+    // Hindari mengirim pesan terakhir dua kali.
+    const lastMessage = messages[messages.length - 1];
+
+    if (
+      !lastMessage ||
+      lastMessage.role !== "user" ||
+      lastMessage.content !== message
+    ) {
+
+      messages.push({
+        role: "user",
+        content: message
+      });
+
+    }
+
+    // 5. COBA MODEL SATU PER SATU
+
+    const errors = [];
+
+    for (const model of models) {
+
+      try {
+
+        const response = await requestWithTimeout(
+          BASE_URL + "/chat/completions",
+          {
+            method: "POST",
+
+            headers: {
+              "Authorization": "Bearer " + API_KEY,
+              "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+              model: model,
+              messages: messages,
+              stream: false
+            })
+
+          },
+          20000
+        );
+
+        if (!response.ok) {
+
+          const error = await readError(response);
+
+          errors.push(
+            model + " (HTTP " +
+            response.status + "): " + error
+          );
+
+          continue;
+
+        }
+
+        const result = await response.json();
+
+        const reply =
+          result.choices?.[0]?.message?.content;
+
+        if (typeof reply === "string" && reply.trim()) {
+
+          console.log("MODEL BERHASIL:", model);
+
+          return res.status(200).json({
+            reply: reply
+          });
+
+        }
+
+        errors.push(
+          model + ": Respons kosong atau format tidak sesuai."
+        );
+
+      } catch (error) {
+
+        errors.push(
+          model + ": " + error.message
+        );
+
+      }
+
+    }
+
+    // 6. SEMUA MODEL GAGAL
+
+    console.error("GROQ DEBUG:", errors);
+
+    return debug(
+      "DEBUG GROQ: Semua model gagal.\n\n" +
+      errors.join("\n\n")
+    );
+
+  } catch (error) {
+
+    console.error("CHAT ERROR:", error);
+
+    return debug(
+      "DEBUG SERVER: " + error.message
+    );
+
+  }
+
 }
