@@ -1,5 +1,5 @@
 // ===== data =====
-const WALAS = 'LILI ERLINA';
+const WALAS = 'LILI ERVINAL S.Pd';
 
 const SISWA = [
   'ALINA MAULANA','ARUM SALSABILA','ARYANA AHMAD DANI','ASSHA OKTARANSA',
